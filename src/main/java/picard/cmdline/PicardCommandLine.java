@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import util.*;
+
 /*
  * The MIT License
  *
@@ -96,11 +98,13 @@ public class PicardCommandLine {
 
     /** For testing **/
     protected int instanceMain(final String[] args) {
+    	
         return instanceMain(args, getPackageList(), COMMAND_LINE_NAME);
     }
 
     /** Override this if you want to include different java packages to search for classes that extend CommandLineProgram. **/
     public static void main(final String[] args) {
+    	System.out.println("hello");
         System.exit(new PicardCommandLine().instanceMain(args, getPackageList(), COMMAND_LINE_NAME));
     }
 
@@ -142,6 +146,11 @@ public class PicardCommandLine {
         if (args.length < 1) {
             printUsage(classes, commandLineName);
         } else {
+        	if (args[0].equals("-s")){
+        		//EntryTest Test = new EntryTest();
+        		Test.testing();
+        		return null;
+        	}
             if (args[0].equals("-h")) {
                 printUsage(classes, commandLineName);
             } else if(args[0].equals("--list-commands")) {

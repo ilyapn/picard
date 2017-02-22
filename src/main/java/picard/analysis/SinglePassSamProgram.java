@@ -93,7 +93,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
         if (referenceSequence == null) {
             walker = null;
         } else {
-            IOUtil.assertFileIsReadable(referenceSequence);
+			IOUtil.assertFileIsReadable(referenceSequence);
             walker = new ReferenceSequenceFileWalker(referenceSequence);
 
             if (!in.getFileHeader().getSequenceDictionary().isEmpty()) {
