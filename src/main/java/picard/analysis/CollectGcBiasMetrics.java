@@ -202,13 +202,13 @@ public class CollectGcBiasMetrics extends SinglePassSamProgram {
         detailMetricsFile.write(OUTPUT);
         summaryMetricsFile.write(SUMMARY_OUTPUT);
 
-        final NumberFormat fmt = NumberFormat.getIntegerInstance();
-        fmt.setGroupingUsed(true);
-        RExecutor.executeFromClasspath(R_SCRIPT,
-                OUTPUT.getAbsolutePath(),
-                SUMMARY_OUTPUT.getAbsolutePath(),
-                CHART_OUTPUT.getAbsolutePath(),
-                String.valueOf(SCAN_WINDOW_SIZE));
+//        final NumberFormat fmt = NumberFormat.getIntegerInstance();
+//        fmt.setGroupingUsed(true);
+//        RExecutor.executeFromClasspath(R_SCRIPT,
+//                OUTPUT.getAbsolutePath(),
+//                SUMMARY_OUTPUT.getAbsolutePath(),
+//                CHART_OUTPUT.getAbsolutePath(),
+//                String.valueOf(SCAN_WINDOW_SIZE));
     }
 }
 
