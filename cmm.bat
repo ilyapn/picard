@@ -1,0 +1,1 @@
+java -jar build/libs/picard.jar CollectMultipleMetrics I=F:/met/NA12878.chrom11.ILLUMINA.bwa.CEU.exome.20121211.bam O=F:/picard/out/out R=F:/met/hs37d5.fa FILE_EXTENSION=".txt"
