@@ -79,7 +79,10 @@ public class Test {
 	
 	static private void filter(String st, ArrayList list){
 		if(!st.startsWith("#") && st.length()>0){
+			 st=st.replace("	", "");
+			 st=st.replace(" ", "");
 			list.add(st);
+			System.out.println(st);
 		}
 	}
 	
