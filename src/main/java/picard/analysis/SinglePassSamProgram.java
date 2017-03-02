@@ -44,6 +44,7 @@ import picard.cmdline.StandardOptionDefinitions;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.Executors;
 
 /**
  * Super class that is designed to provide some consistent structure between subclasses that
@@ -83,7 +84,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
                                 final boolean assumeSorted,
                                 final long stopAfter,
                                 final Collection<SinglePassSamProgram> programs) {
-
+    	long start = System.nanoTime();
         // Setup the standard inputs
         IOUtil.assertFileIsReadable(input);
         final SamReader in = SamReaderFactory.makeDefault().referenceSequence(referenceSequence).open(input);
@@ -123,9 +124,9 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
             anyUseNoRefReads = anyUseNoRefReads || program.usesNoRefReads();
         }
 
-
+       // System.out.println("point1"+ in.);
+        
         final ProgressLogger progress = new ProgressLogger(log);
-
         for (final SAMRecord rec : in) {
             final ReferenceSequence ref;
             if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
@@ -133,11 +134,10 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
             } else {
                 ref = walker.get(rec.getReferenceIndex());
             }
-
             for (final SinglePassSamProgram program : programs) {
+            	
                 program.acceptRead(rec, ref);
             }
-
             progress.record(rec);
 
             // See if we need to terminate early?
@@ -152,9 +152,10 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
         }
 
         CloserUtil.close(in);
-
+        System.out.println("point2");
         for (final SinglePassSamProgram program : programs) {
             program.finish();
+            System.out.println(((double)(System.nanoTime()-start)/1_000_000_000) +" "+ program.toString());
         }
     }
 

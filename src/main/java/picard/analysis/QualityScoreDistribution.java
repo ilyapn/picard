@@ -151,21 +151,21 @@ public class QualityScoreDistribution extends SinglePassSamProgram {
         metrics.addHistogram(qHisto);
         if (!oqHisto.isEmpty()) metrics.addHistogram(oqHisto);
         metrics.write(OUTPUT);
-        if (qHisto.isEmpty() && oqHisto.isEmpty()) {
-            log.warn("No valid bases found in input file. No plot will be produced.");
-        }
-        else {
-            // Now run R to generate a chart
-            final int rResult = RExecutor.executeFromClasspath(
-                    "picard/analysis/qualityScoreDistribution.R",
-                    OUTPUT.getAbsolutePath(),
-                    CHART_OUTPUT.getAbsolutePath(),
-                    INPUT.getName(),
-                    this.plotSubtitle);
-
-            if (rResult != 0) {
-                throw new PicardException("R script qualityScoreDistribution.R failed with return code " + rResult);
-            }
-        }
+//        if (qHisto.isEmpty() && oqHisto.isEmpty()) {
+//            log.warn("No valid bases found in input file. No plot will be produced.");
+//        }
+//        else {
+//            // Now run R to generate a chart
+//            final int rResult = RExecutor.executeFromClasspath(
+//                    "picard/analysis/qualityScoreDistribution.R",
+//                    OUTPUT.getAbsolutePath(),
+//                    CHART_OUTPUT.getAbsolutePath(),
+//                    INPUT.getName(),
+//                    this.plotSubtitle);
+//
+//            if (rResult != 0) {
+//                throw new PicardException("R script qualityScoreDistribution.R failed with return code " + rResult);
+//            }
+//        }
     }
 }

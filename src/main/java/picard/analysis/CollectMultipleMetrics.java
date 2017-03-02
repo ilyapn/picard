@@ -36,6 +36,9 @@ import picard.cmdline.StandardOptionDefinitions;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Class that is designed to instantiate and execute multiple metrics programs
@@ -481,6 +484,8 @@ public class CollectMultipleMetrics extends CommandLineProgram {
 																					// extension
 																					// if
 																					// desired
+			
+
 			final SinglePassSamProgram instance = program.makeInstance(OUTPUT, outext, INPUT, REFERENCE_SEQUENCE,
 					METRIC_ACCUMULATION_LEVEL, DB_SNP, INTERVALS, INCLUDE_UNPAIRED);
 
@@ -494,8 +499,27 @@ public class CollectMultipleMetrics extends CommandLineProgram {
 
 			programs.add(instance);
 		}
-		SinglePassSamProgram.makeItSo(INPUT, REFERENCE_SEQUENCE, ASSUME_SORTED, STOP_AFTER, programs);
-
+		//SinglePassSamProgram.makeItSo(INPUT, REFERENCE_SEQUENCE, ASSUME_SORTED, STOP_AFTER,programs);
+		//ArrayList<Future> list = new ArrayList<Future>();
+		ExecutorService executor = Executors.newCachedThreadPool();
+				for(SinglePassSamProgram elem : programs){
+					ArrayList list = new ArrayList();
+					list.add(elem);
+					
+					executor.submit(new Runnable() {
+						public void run() {
+						SinglePassSamProgram.makeItSo(INPUT, REFERENCE_SEQUENCE, ASSUME_SORTED, STOP_AFTER,list );
+						}
+					});
+				};
+		try{
+			executor.awaitTermination(5, TimeUnit.MINUTES);
+			//executor.wait();
+			//executor.invokeAll(new ArrayList<>());
+		}
+			catch(Exception e){
+				e.printStackTrace();
+			}
 		return 0;
 	}
 }
