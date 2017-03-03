@@ -42,10 +42,13 @@ import picard.cmdline.Option;
 import picard.cmdline.StandardOptionDefinitions;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Super class that is designed to provide some consistent structure between
@@ -126,28 +129,41 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
 		final ProgressLogger progress = new ProgressLogger(log);
 
-//		ExecutorService service = Executors.newCachedThreadPool();
-
+		ExecutorService service = Executors.newFixedThreadPool(4);
+		ArrayList<Future<?>> list = new ArrayList<Future<?>>();
 		for (final SAMRecord rec : in) {
-//			service.submit(new Runnable() {
-//				public void run() {
+			//скопить record попарно c ref  много rec в ref добавить класс
+			final ReferenceSequence ref;
+			if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+				ref = null;
+			} else {
+				ref = walker.get(rec.getReferenceIndex());
+			}
 
-					final ReferenceSequence ref;
-					if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-						ref = null;
-					} else {
-						ref = walker.get(rec.getReferenceIndex());
-					}
-
-					for (final SinglePassSamProgram program : programs) {
-
+			for (final SinglePassSamProgram program : programs) {
+				
+				Future<?> fut = service.submit(new Runnable() {
+					public void run() {
 						program.acceptRead(rec, ref);
-
+						//нужно отправить пачку данных 
 					}
+				});
+				list.add(fut);
+			}
+			// ожидаем
+			for(Future<?> fut:list){
+				try {
+					fut.get();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ExecutionException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			progress.record(rec);
 
-					progress.record(rec);
-//				}
-//			});
 			// See if we need to terminate early?
 			if (stopAfter > 0 && progress.getCount() >= stopAfter) {
 				break;
@@ -159,6 +175,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 			}
 
 		}
+		
 
 		CloserUtil.close(in);
 
