@@ -129,16 +129,21 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
 		final ProgressLogger progress = new ProgressLogger(log);
 
-		ExecutorService service = Executors.newFixedThreadPool(8);
+		ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
 		ArrayList<Future<?>> list = new ArrayList<Future<?>>();
-		ArrayList<SAMRecord> accRec = new ArrayList<SAMRecord>();
-		ArrayList<ReferenceSequence> accRef = new ArrayList<ReferenceSequence>();
-		int arrayLength = 1000;
+		// ArrayList<SAMRecord> accRec = new ArrayList<SAMRecord>();
+		// ArrayList<ReferenceSequence> accRef = new
+		// ArrayList<ReferenceSequence>();
+
+		int MAX_PAIRS = 10000;
+		ArrayList<Object[]> pairs = new ArrayList<>(MAX_PAIRS);
+
+		// int arrayLength = 1000;
 
 		for (final SAMRecord rec : in) {
 			// скопить record попарно c ref много rec в ref добавить класс
-			accRec.add(rec);
+			// accRec.add(rec);
 			// for (int i = 0; i < arrayLength; i++) {
 			final ReferenceSequence ref;
 			if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
@@ -148,40 +153,56 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 				// accRec.add(rec);
 				// accRef.add(ref);
 				// System.out.println(i);
+				pairs.add(new Object[] { rec, ref });
 			}
 			// }
 			// System.out.println("---------------------");
-			if (accRec.size() == 10000) {
 
-				for (final SinglePassSamProgram program : programs) {
-
-					Future<?> fut = service.submit(new Runnable() {
-						public void run() {
-							for (int j = 0; j < arrayLength; j++) {
-								program.acceptRead(accRec.get(j), ref);
-							}
-							// нужно отправить пачку данных
-						}
-					});
-					list.add(fut);
-				}
-				// ожидаем
-				for (Future<?> fut : list) {
-					try {
-						fut.get();
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} catch (ExecutionException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-				accRec.clear();
-				// for (SAMRecord singleRec : accRec){
-				// progress.record(singleRec);
-				// }
+			// if ((pairs.size() < MAX_PAIRS) || (progress.getCount() >=
+			// stopAfter)) {
+			int qweqwr = rec.getEnd();
+			if ((pairs.size() < MAX_PAIRS) || (qweqwr==0)) {
+				// System.out.println(pairs.size());
+				continue;
 			}
+			System.out.println(pairs.size());
+			final ArrayList<Object[]> tmpPairs = pairs;
+			pairs = new ArrayList<>(MAX_PAIRS);
+
+			// if (pairs.size() < MAX_PAIRS) {
+
+			for (final SinglePassSamProgram program : programs) {
+
+				Future<?> fut = service.submit(new Runnable() {
+					// service.submit(new Runnable() {
+					public void run() {
+						for (Object[] objects : tmpPairs) {
+							SAMRecord record = (SAMRecord) objects[0];
+							ReferenceSequence refer = (ReferenceSequence) objects[1];
+							program.acceptRead(record, refer);
+						}
+						// нужно отправить пачку данных
+					}
+				});
+				list.add(fut);
+			}
+			// ожидаем
+			for (Future<?> fut : list) {
+				try {
+					fut.get();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ExecutionException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			// accRec.clear();
+			// for (SAMRecord singleRec : accRec){
+			// progress.record(singleRec);
+			// }
+			// }
 			progress.record(rec);
 
 			// See if we need to terminate early?
@@ -193,7 +214,6 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 			if (!anyUseNoRefReads && rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				break;
 			}
-
 		}
 
 		CloserUtil.close(in);
