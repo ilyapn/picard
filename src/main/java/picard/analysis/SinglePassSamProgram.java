@@ -132,53 +132,57 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 		ExecutorService service = Executors.newFixedThreadPool(8);
 
 		ArrayList<Future<?>> list = new ArrayList<Future<?>>();
-		
+		ArrayList<SAMRecord> accRec = new ArrayList<SAMRecord>();
+		ArrayList<ReferenceSequence> accRef = new ArrayList<ReferenceSequence>();
 		int arrayLength = 1000;
 
 		for (final SAMRecord rec : in) {
 			// скопить record попарно c ref много rec в ref добавить класс
-			ArrayList<SAMRecord> accRec = new ArrayList<SAMRecord>();
-			ArrayList<ReferenceSequence> accRef = new ArrayList<ReferenceSequence>();
-			for (int i = 0; i < arrayLength; i++) {
-				final ReferenceSequence ref;
-				if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-					ref = null;
-				} else {
-					ref = walker.get(rec.getReferenceIndex());
-					accRec.add(rec);
-					accRef.add(ref);
-					//System.out.println(i);
-				}
+			accRec.add(rec);
+			// for (int i = 0; i < arrayLength; i++) {
+			final ReferenceSequence ref;
+			if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
+				ref = null;
+			} else {
+				ref = walker.get(rec.getReferenceIndex());
+				// accRec.add(rec);
+				// accRef.add(ref);
+				// System.out.println(i);
 			}
-			//System.out.println("---------------------");
-			for (final SinglePassSamProgram program : programs) {
+			// }
+			// System.out.println("---------------------");
+			if (accRec.size() == 10000) {
 
-				Future<?> fut = service.submit(new Runnable() {
-					public void run() {
-						for (int j = 0; j < arrayLength; j++) {
-							program.acceptRead(accRec.get(j), accRef.get(j));
+				for (final SinglePassSamProgram program : programs) {
+
+					Future<?> fut = service.submit(new Runnable() {
+						public void run() {
+							for (int j = 0; j < arrayLength; j++) {
+								program.acceptRead(accRec.get(j), ref);
+							}
+							// нужно отправить пачку данных
 						}
-						// нужно отправить пачку данных
-					}
-				});
-				list.add(fut);
-			}
-			// ожидаем
-			for (Future<?> fut : list) {
-				try {
-					fut.get();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (ExecutionException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					});
+					list.add(fut);
 				}
+				// ожидаем
+				for (Future<?> fut : list) {
+					try {
+						fut.get();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (ExecutionException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+				accRec.clear();
+				// for (SAMRecord singleRec : accRec){
+				// progress.record(singleRec);
+				// }
 			}
-			for (SAMRecord singleRec : accRec){
-				progress.record(singleRec);
-			}
-			//progress.record(rec);
+			progress.record(rec);
 
 			// See if we need to terminate early?
 			if (stopAfter > 0 && progress.getCount() >= stopAfter) {
