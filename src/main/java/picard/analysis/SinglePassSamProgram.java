@@ -27,6 +27,7 @@ package picard.analysis;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileHeader.SortOrder;
 import htsjdk.samtools.SAMRecord;
+import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.reference.ReferenceSequence;
@@ -45,6 +46,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -132,51 +134,35 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 		ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
 		ArrayList<Future<?>> list = new ArrayList<Future<?>>();
-		// ArrayList<SAMRecord> accRec = new ArrayList<SAMRecord>();
-		// ArrayList<ReferenceSequence> accRef = new
-		// ArrayList<ReferenceSequence>();
 
 		int MAX_PAIRS = 10000;
 		ArrayList<Object[]> pairs = new ArrayList<>(MAX_PAIRS);
-
-		// int arrayLength = 1000;
-
+		int qwe = 0;
+		
 		for (final SAMRecord rec : in) {
-			// скопить record попарно c ref много rec в ref добавить класс
-			// accRec.add(rec);
-			// for (int i = 0; i < arrayLength; i++) {
+			qwe++;
 			final ReferenceSequence ref;
 			if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				ref = null;
 			} else {
 				ref = walker.get(rec.getReferenceIndex());
-				// accRec.add(rec);
-				// accRef.add(ref);
-				// System.out.println(i);
 				pairs.add(new Object[] { rec, ref });
 			}
-			// }
-			// System.out.println("---------------------");
 
-			// if ((pairs.size() < MAX_PAIRS) || (progress.getCount() >=
-			// stopAfter)) {
-			int qweqwr = rec.getEnd();
-			if ((pairs.size() < MAX_PAIRS) || (qweqwr==0)) {
-				// System.out.println(pairs.size());
+			if ((pairs.size() < MAX_PAIRS) && (rec!=null)){
 				continue;
 			}
+			
 			System.out.println(pairs.size());
-			final ArrayList<Object[]> tmpPairs = pairs;
-			pairs = new ArrayList<>(MAX_PAIRS);
-
-			// if (pairs.size() < MAX_PAIRS) {
-
+			System.out.println(qwe);
+			//System.out.println(in.toString().length());
+			//final ArrayList<Object[]> tmpPairs = pairs;
+			//pairs = new ArrayList<>(MAX_PAIRS);
 			for (final SinglePassSamProgram program : programs) {
 
 				Future<?> fut = service.submit(new Runnable() {
-					// service.submit(new Runnable() {
 					public void run() {
-						for (Object[] objects : tmpPairs) {
+						for (Object[] objects : pairs) {
 							SAMRecord record = (SAMRecord) objects[0];
 							ReferenceSequence refer = (ReferenceSequence) objects[1];
 							program.acceptRead(record, refer);
@@ -198,11 +184,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 					e.printStackTrace();
 				}
 			}
-			// accRec.clear();
-			// for (SAMRecord singleRec : accRec){
-			// progress.record(singleRec);
-			// }
-			// }
+			pairs.clear();
 			progress.record(rec);
 
 			// See if we need to terminate early?
@@ -214,8 +196,39 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 			if (!anyUseNoRefReads && rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				break;
 			}
+			
+			
 		}
+		
+		if (!pairs.isEmpty()){
+			for (final SinglePassSamProgram program : programs) {
 
+				Future<?> fut = service.submit(new Runnable() {
+					public void run() {
+						for (Object[] objects : pairs) {
+							SAMRecord record = (SAMRecord) objects[0];
+							ReferenceSequence refer = (ReferenceSequence) objects[1];
+							program.acceptRead(record, refer);
+						}
+						// нужно отправить пачку данных
+					}
+				});
+				list.add(fut);
+			}
+			// ожидаем
+			for (Future<?> fut : list) {
+				try {
+					fut.get();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ExecutionException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		
 		CloserUtil.close(in);
 
 		for (final SinglePassSamProgram program : programs) {
