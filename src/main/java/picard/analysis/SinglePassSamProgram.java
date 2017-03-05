@@ -88,7 +88,7 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
 	public static void makeItSo(final File input, final File referenceSequence, final boolean assumeSorted,
 			final long stopAfter, final Collection<SinglePassSamProgram> programs) {
-
+		long start = System.nanoTime();
 		// Setup the standard inputs
 		IOUtil.assertFileIsReadable(input);
 		final SamReader in = SamReaderFactory.makeDefault().referenceSequence(referenceSequence).open(input);
@@ -137,10 +137,8 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 
 		int MAX_PAIRS = 10000;
 		ArrayList<Object[]> pairs = new ArrayList<>(MAX_PAIRS);
-		int qwe = 0;
-		
+
 		for (final SAMRecord rec : in) {
-			qwe++;
 			final ReferenceSequence ref;
 			if (walker == null || rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				ref = null;
@@ -149,15 +147,10 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 				pairs.add(new Object[] { rec, ref });
 			}
 
-			if ((pairs.size() < MAX_PAIRS) && (rec!=null)){
+			if ((pairs.size() < MAX_PAIRS) && (rec != null)) {
 				continue;
 			}
-			
-			System.out.println(pairs.size());
-			System.out.println(qwe);
-			//System.out.println(in.toString().length());
-			//final ArrayList<Object[]> tmpPairs = pairs;
-			//pairs = new ArrayList<>(MAX_PAIRS);
+
 			for (final SinglePassSamProgram program : programs) {
 
 				Future<?> fut = service.submit(new Runnable() {
@@ -167,12 +160,10 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 							ReferenceSequence refer = (ReferenceSequence) objects[1];
 							program.acceptRead(record, refer);
 						}
-						// нужно отправить пачку данных
 					}
 				});
 				list.add(fut);
 			}
-			// ожидаем
 			for (Future<?> fut : list) {
 				try {
 					fut.get();
@@ -196,11 +187,10 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 			if (!anyUseNoRefReads && rec.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
 				break;
 			}
-			
-			
+
 		}
-		
-		if (!pairs.isEmpty()){
+
+		if (!pairs.isEmpty()) {
 			for (final SinglePassSamProgram program : programs) {
 
 				Future<?> fut = service.submit(new Runnable() {
@@ -210,12 +200,10 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 							ReferenceSequence refer = (ReferenceSequence) objects[1];
 							program.acceptRead(record, refer);
 						}
-						// нужно отправить пачку данных
 					}
 				});
 				list.add(fut);
 			}
-			// ожидаем
 			for (Future<?> fut : list) {
 				try {
 					fut.get();
@@ -228,12 +216,13 @@ public abstract class SinglePassSamProgram extends CommandLineProgram {
 				}
 			}
 		}
-		
+
 		CloserUtil.close(in);
 
 		for (final SinglePassSamProgram program : programs) {
 			program.finish();
 		}
+		System.out.println((double)(System.nanoTime() - start) / 1_000_000_000 + " is working time");
 	}
 
 	/**
