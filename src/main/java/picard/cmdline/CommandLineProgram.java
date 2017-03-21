@@ -123,7 +123,7 @@ public abstract class CommandLineProgram {
     * Initialized in parseArgs.  Subclasses may want to access this to do their
     * own validation, and then print usage using commandLineParser.
     */
-    private CommandLineParser commandLineParser;
+	private CommandLineParser commandLineParser;
 
     private final List<Header> defaultHeaders = new ArrayList<Header>();
 
@@ -141,7 +141,7 @@ public abstract class CommandLineProgram {
     protected abstract int doWork();
 
     public void instanceMainWithExit(final String[] argv) {
-        System.exit(instanceMain(argv));
+		System.exit(instanceMain(argv));
     }
 
     public int instanceMain(final String[] argv) {
